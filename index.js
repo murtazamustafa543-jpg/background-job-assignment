@@ -14,6 +14,10 @@ app.get("/health", (req, res) => {
 app.post("/reports", async (req, res) => {
   const { topic } = req.body;
 
+  if (!topic) {
+    return res.status(400).json({ error: "topic is required" });
+  }
+
   const report = createReport(topic);
 
   await inngest.send({
