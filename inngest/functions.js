@@ -16,18 +16,34 @@ const makeReport = inngest.createFunction(
 
     await step.sleep("do-the-slow-work", "8s");
 
-    const result = await step.run("build-report", async () => {
-      if (topic === "fail") {
-        throw new Error("The report oven is broken!");
-      }
-      return `Report on "${topic}" generated at ${new Date().toISOString()}`;
-    });
+    try {
+      const result = await step.run("build-report", async () => {
+        if (topic === "fail") {
+          throw new Error("The report oven is broken!");
+        }
+        return `Report on "${topic}" generated at ${new Date().toISOString()}`;
+      });
 
-    reports[id].status = "done";
-    reports[id].result = result;
-
-    return result;
+      reports[id].status = "done";
+      reports[id].result = result;
+      return result;
+    } catch (err) {
+      reports[id].status = "failed";
+      throw err; // re-throw so Inngest still marks the run Failed
+    }
   }
 );
 
-module.exports = { sayHello, makeReport };
+const heartbeat = inngest.createFunction(
+  { id: "heartbeat", triggers: [{ cron: "* * * * *" }] },
+  async () => {
+    const all = Object.values(reports);
+    const pending = all.filter(r => r.status === "pending").length;
+    const done = all.filter(r => r.status === "done").length;
+    const failed = all.filter(r => r.status === "failed").length;
+
+    console.log(`[heartbeat] pending: ${pending}, done: ${done}, failed: ${failed}`);
+  }
+);
+
+module.exports = { sayHello, makeReport, heartbeat };

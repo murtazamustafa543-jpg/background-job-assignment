@@ -1,7 +1,6 @@
 const express = require("express");
 const { serve } = require("inngest/express");
 const inngest = require("./inngest/client");
-const { sayHello, makeReport } = require("./inngest/functions");
 const { createReport, getReport } = require("./store");
 
 const app = express();
@@ -33,7 +32,7 @@ app.get("/reports/:id", (req, res) => {
   if (!report) return res.status(404).json({ error: "Not found" });
   res.json(report);
 });
-
-app.use("/api/inngest", serve({ client: inngest, functions: [sayHello, makeReport] }));
+const {sayHello, makeReport, heartbeat } = require("./inngest/functions");
+app.use("/api/inngest", serve({ client: inngest, functions: [sayHello, makeReport, heartbeat] }));
 
 app.listen(3000, () => console.log("Server running on port 3000"));
